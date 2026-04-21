@@ -6,6 +6,9 @@
     const MIN_STAT = 0;
     const DECAY_INTERVAL_MS = 300000; // 5 minutos
     const DECAY_AMOUNT = 8;
+    
+    // 🔗 LINK DA API DO CHAT (substitua pelo seu link da Vercel)
+    const API_CHAT_URL = 'mini-maestro-i8jab07v9-luiz-fran-01.vercel.app/api/chat';
 
     // Estado
     let hunger = 65;
@@ -31,6 +34,11 @@
     const feedBtn = document.getElementById('feedBtn');
     const playBtn = document.getElementById('playBtn');
     const sleepBtn = document.getElementById('sleepBtn');
+
+    // Elementos do chat
+    const chatInput = document.getElementById('chatInput');
+    const sendChatBtn = document.getElementById('sendChatBtn');
+    const chatMessages = document.getElementById('chatMessages');
 
     let decayInterval = null;
     let actionTimer = null; // Para ações temporárias (comendo/tocando/dormindo)
@@ -59,7 +67,6 @@
 
     // ---------- ATUALIZA EXPRESSÃO DO PINGUIM (SPRITE) ----------
     function updateSprite(forcedClass = null) {
-        // Remove todas as classes de estado
         pinguimDiv.classList.remove('neutro', 'feliz', 'triste', 'fome', 'cansado', 'teclado', 'dormindo', 'comendo');
         
         if (forcedClass) {
@@ -67,7 +74,6 @@
             return;
         }
 
-        // Prioridade: status zerados > status baixos > felicidade alta > neutro
         if (hunger <= MIN_STAT) {
             pinguimDiv.classList.add('fome');
         } else if (happiness <= MIN_STAT) {
@@ -89,7 +95,6 @@
 
     // ---------- ATUALIZA TODA A UI ----------
     function updateUI() {
-        // Barras
         hungerBar.style.width = (hunger / MAX_STAT * 100) + '%';
         happinessBar.style.width = (happiness / MAX_STAT * 100) + '%';
         energyBar.style.width = (energy / MAX_STAT * 100) + '%';
@@ -97,17 +102,14 @@
         happinessValue.textContent = Math.floor(happiness);
         energyValue.textContent = Math.floor(energy);
 
-        // Nível e XP
         levelDisplay.textContent = maestroLevel;
         const xpPercent = (maestroXP % XP_PER_LEVEL) / XP_PER_LEVEL * 100;
         xpBarFill.style.width = xpPercent + '%';
 
-        // Bloqueio de botões se barra cheia
         feedBtn.disabled = (hunger >= MAX_STAT);
         playBtn.disabled = (happiness >= MAX_STAT);
         sleepBtn.disabled = (energy >= MAX_STAT);
 
-        // Remove classes urgentes
         feedBtn.classList.remove('urgent');
         playBtn.classList.remove('urgent');
         sleepBtn.classList.remove('urgent');
@@ -137,7 +139,6 @@
             else messageEl.textContent = '🎼 Pronto para reger uma sinfonia!';
         }
 
-        // Atualiza sprite (a menos que esteja em ação temporária)
         if (!actionTimer) {
             updateSprite();
         }
@@ -197,7 +198,6 @@
             return;
         }
 
-        // Notas musicais flutuantes
         musicContainer.innerHTML = '';
         const notes = ['♪', '♫', '🎵', '🎶'];
         for(let i=0; i<6; i++) {
@@ -235,6 +235,53 @@
         updateUI();
     }
 
+    // ---------- FUNCIONALIDADE DO CHAT COM IA ----------
+    async function enviarMensagem() {
+        const mensagem = chatInput.value.trim();
+        if (!mensagem) return;
+
+        adicionarMensagem(mensagem, 'usuario');
+        chatInput.value = '';
+        sendChatBtn.disabled = true;
+
+        const digitandoDiv = adicionarMensagem('🐧 Piu... (digitando)', 'maestro');
+
+        try {
+            const response = await fetch(API_CHAT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mensagem })
+            });
+            const data = await response.json();
+            
+            digitandoDiv.remove();
+            
+            if (data.resposta) {
+                adicionarMensagem(data.resposta, 'maestro');
+                happiness = Math.min(MAX_STAT, happiness + 3);
+                addXP(2);
+                updateUI();
+            } else {
+                adicionarMensagem('🤔 Hmm, me perdi na partitura... Tente de novo.', 'maestro');
+            }
+        } catch (error) {
+            digitandoDiv.remove();
+            adicionarMensagem('❌ O maestro saiu para pescar... (erro de conexão)', 'maestro');
+        } finally {
+            sendChatBtn.disabled = false;
+            chatInput.focus();
+        }
+    }
+
+    function adicionarMensagem(texto, tipo) {
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('chat-message', tipo);
+        msgDiv.textContent = texto;
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return msgDiv;
+    }
+
     // ---------- DECAIMENTO LENTO ----------
     function decayStats() {
         hunger = Math.max(MIN_STAT, hunger - DECAY_AMOUNT);
@@ -253,6 +300,13 @@
         feedBtn.addEventListener('click', feed);
         playBtn.addEventListener('click', playMusic);
         sleepBtn.addEventListener('click', sleep);
+
+        if (sendChatBtn) {
+            sendChatBtn.addEventListener('click', enviarMensagem);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') enviarMensagem();
+            });
+        }
 
         if (decayInterval) clearInterval(decayInterval);
         decayInterval = setInterval(decayStats, DECAY_INTERVAL_MS);
