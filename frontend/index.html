@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🐧 Pinguim Maestro · Pou Virtual</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-wrapper">
+        <div class="game-container">
+            <h1>🐧 Maestro Pinguim</h1>
+            
+            <!-- Área do pinguim com spritesheet -->
+            <div class="pinguim-area">
+                <div id="pinguimSprite" class="pinguim neutro"></div>
+                <div id="musicNotesContainer" class="music-notes-container"></div>
+            </div>
+
+            <!-- Nível e XP -->
+            <div class="level-box">
+                <span class="level-emoji">🎼</span>
+                <span>Nível Maestro: <span id="levelDisplay">1</span></span>
+                <div class="xp-bar-container">
+                    <div id="xpBarFill" class="xp-bar-fill"></div>
+                </div>
+            </div>
+
+            <!-- Painel de Status -->
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <span class="stat-emoji">🐟</span>
+                    <div class="stat-bar-container">
+                        <div id="hungerBar" class="stat-bar-fill fome"></div>
+                    </div>
+                    <span id="hungerValue" class="stat-value">65</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-emoji">🎵</span>
+                    <div class="stat-bar-container">
+                        <div id="happinessBar" class="stat-bar-fill felicidade"></div>
+                    </div>
+                    <span id="happinessValue" class="stat-value">55</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-emoji">⚡</span>
+                    <div class="stat-bar-container">
+                        <div id="energyBar" class="stat-bar-fill energia"></div>
+                    </div>
+                    <span id="energyValue" class="stat-value">70</span>
+                </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="buttons-grid">
+                <button class="btn feed-btn" id="feedBtn">🐟 Alimentar</button>
+                <button class="btn play-btn" id="playBtn">🎹 Tocar</button>
+                <button class="btn sleep-btn" id="sleepBtn">🛋️ Descansar</button>
+            </div>
+
+            <!-- Mensagens -->
+            <div id="messageDisplay" class="message-area">✨ Vamos reger o dia!</div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
