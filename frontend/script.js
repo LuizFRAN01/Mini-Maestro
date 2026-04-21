@@ -236,7 +236,7 @@
     }
 
     // ---------- FUNCIONALIDADE DO CHAT COM IA ----------
-    async function enviarMensagem() {
+        async function enviarMensagem() {
         const mensagem = chatInput.value.trim();
         if (!mensagem) return;
 
@@ -256,16 +256,20 @@
             
             digitandoDiv.remove();
             
-            if (data.resposta) {
+            // === CORREÇÃO AQUI: verificamos se data.resposta EXISTE ===
+            if (data && data.resposta) {
                 adicionarMensagem(data.resposta, 'maestro');
                 happiness = Math.min(MAX_STAT, happiness + 3);
                 addXP(2);
                 updateUI();
             } else {
-                adicionarMensagem('🤔 Hmm, me perdi na partitura... Tente de novo.', 'maestro');
+                // Se a resposta for estranha, mostra o erro real
+                console.error('Resposta inesperada:', data);
+                adicionarMensagem('🤔 Acho que me enrolei nas teclas... Tente de novo.', 'maestro');
             }
         } catch (error) {
             digitandoDiv.remove();
+            console.error('Erro de rede:', error);
             adicionarMensagem('❌ O maestro saiu para pescar... (erro de conexão)', 'maestro');
         } finally {
             sendChatBtn.disabled = false;
