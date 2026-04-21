@@ -8,7 +8,7 @@
     const DECAY_AMOUNT = 8;
     
     // 🔗 LINK DA API DO CHAT (substitua pelo seu link da Vercel)
-    const API_CHAT_URL = 'https://mini-maestro-i8jab07v9-luiz-fran-01.vercel.app/api/chat';
+    const API_CHAT_URL = 'https://mini-maestro-rbrdtn9t0-luiz-fran-01.vercel.app/api/chat';
 
     // Estado
     let hunger = 65;
