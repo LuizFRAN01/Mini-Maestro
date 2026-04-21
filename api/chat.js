@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-    // Configurar CORS para permitir chamadas do seu frontend
+    // Cabeçalhos para permitir a comunicação com o site
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -17,15 +17,21 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Mensagem vazia' });
     }
 
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) {
+        console.error('ERRO: DEEPSEEK_API_KEY não está definida.');
+        return res.status(500).json({ error: 'Chave da API não configurada no servidor.' });
+    }
+
     try {
-        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
+                'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'deepseek-chat',
+                model: 'openrouter/free', // O modelo mágico e gratuito
                 messages: [
                     {
                         role: 'system',
@@ -42,9 +48,16 @@ export default async function handler(req, res) {
         });
 
         const data = await response.json();
+
+        if (!response.ok) {
+            console.error('Erro do OpenRouter:', data);
+            return res.status(500).json({ error: `Erro da API OpenRouter: ${JSON.stringify(data)}` });
+        }
+
         const resposta = data.choices[0].message.content;
         res.status(200).json({ resposta });
     } catch (error) {
-        res.status(500).json({ error: 'Ops, o maestro se atrapalhou com a partitura.' });
+        console.error('Erro no servidor:', error);
+        res.status(500).json({ error: `Erro interno: ${error.message}` });
     }
 }
