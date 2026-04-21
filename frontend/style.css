@@ -1,0 +1,270 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: linear-gradient(145deg, #b3e0ff 0%, #d4f0ff 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Segoe UI', 'Quicksand', system-ui, sans-serif;
+    padding: 16px;
+    margin: 0;
+}
+
+.game-wrapper {
+    width: 100%;
+    max-width: 520px;
+}
+
+.game-container {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 48px;
+    padding: 28px 22px 32px;
+    box-shadow: 0 20px 30px rgba(0, 40, 60, 0.2), inset 0 2px 6px rgba(255, 255, 255, 0.8);
+    border: 2px solid #e3f2fd;
+}
+
+h1 {
+    text-align: center;
+    font-weight: 700;
+    font-size: 2.2rem;
+    color: #02457a;
+    text-shadow: 4px 4px 0 #aad0f5;
+    margin: -8px 0 12px 0;
+    letter-spacing: 2px;
+}
+
+.pinguim-area {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+/* ESTILO DO PINGUIM VIA SPRITESHEET */
+.pinguim {
+    width: 300px;
+    height: 360px;
+    background-image: url('imagens/spritesheet.png'); /* Ajuste o nome se necessário */
+    background-repeat: no-repeat;
+    background-size: 903px 1082px; /* Tamanho real da spritesheet (3 colunas x ? linhas) */
+    image-rendering: crisp-edges;   /* Para pixel art, mantém nitidez */
+    border-radius: 20px;
+    box-shadow: 0 12px 0 #7a9bb5, 0 16px 20px rgba(0,0,0,0.1);
+    border: 3px solid #8fb0cc;
+}
+
+/* Posições baseadas na tabela do Leshy fornecida */
+.pinguim.neutro   { background-position: -301px -361px; }
+.pinguim.feliz    { background-position: -301px 0; }
+.pinguim.triste   { background-position: -602px -361px; }
+.pinguim.fome     { background-position: 0 -361px; }
+.pinguim.cansado  { background-position: 0 -722px; }
+.pinguim.teclado  { background-position: -602px 0; }
+.pinguim.dormindo { background-position: 0 0; }
+.pinguim.comendo  { background-position: -301px -722px; }
+
+/* Notas musicais flutuantes */
+.music-notes-container {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    display: flex;
+    gap: 20px;
+    z-index: 10;
+}
+
+.music-note {
+    font-size: 32px;
+    opacity: 0;
+    animation: floatNote 1.5s ease-out forwards;
+    filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1));
+}
+
+@keyframes floatNote {
+    0% { opacity: 0; transform: translateY(0) scale(0.5); }
+    30% { opacity: 1; transform: translateY(-30px) scale(1.2); }
+    100% { opacity: 0; transform: translateY(-80px) scale(0.8); }
+}
+
+/* Caixa de nível e XP */
+.level-box {
+    background: #ffffffc9;
+    border-radius: 40px;
+    padding: 8px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: #013a63;
+    border: 1px solid #b9d8f0;
+    box-shadow: inset 0 2px 4px #ffffff, 0 4px 0 #6d94af;
+}
+
+.level-emoji {
+    font-size: 24px;
+}
+
+.xp-bar-container {
+    flex: 1;
+    height: 14px;
+    background: #cbdde9;
+    border-radius: 20px;
+    overflow: hidden;
+    margin-left: 8px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.xp-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #f9c74f, #f9844a);
+    border-radius: 20px;
+    transition: width 0.3s;
+}
+
+/* Painel de status */
+.stats-panel {
+    background: #e1f0fa;
+    border-radius: 50px 50px 30px 30px;
+    padding: 18px 18px 12px;
+    box-shadow: inset 0 4px 6px #ffffffd0, 0 6px 0 #6c8da3;
+    border: 2px solid #aac7e0;
+    margin-bottom: 24px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.stat-emoji {
+    font-size: 28px;
+    width: 40px;
+    text-align: center;
+}
+
+.stat-bar-container {
+    flex: 1;
+    height: 24px;
+    background: #b7cfdd;
+    border-radius: 30px;
+    box-shadow: inset 0 3px 6px rgba(0,0,0,0.05);
+    border: 1px solid #8aabc2;
+    overflow: hidden;
+}
+
+.stat-bar-fill {
+    height: 100%;
+    width: 50%;
+    border-radius: 30px;
+    transition: width 0.2s ease;
+    box-shadow: inset -2px -2px 0 rgba(0,0,0,0.1), inset 2px 2px 0 #ffffffaa;
+}
+
+.stat-bar-fill.fome {
+    background: linear-gradient(90deg, #70c1b3, #2a9d8f);
+}
+.stat-bar-fill.felicidade {
+    background: linear-gradient(90deg, #ffb347, #ff8c00);
+}
+.stat-bar-fill.energia {
+    background: linear-gradient(90deg, #5773ff, #3a5ba0);
+}
+
+.stat-value {
+    min-width: 45px;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #023047;
+    text-align: right;
+}
+
+/* Botões */
+.buttons-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin: 8px 0 18px;
+}
+
+.btn {
+    background: #f8f3e6;
+    border: none;
+    border-bottom: 6px solid #8f9eb5;
+    color: #013a63;
+    font-weight: bold;
+    font-size: 1.3rem;
+    padding: 12px 18px;
+    min-width: 115px;
+    border-radius: 60px;
+    box-shadow: 0 5px 0 #5e7485, 0 6px 12px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: all 0.05s ease-in;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 2px solid #ffffff;
+    text-shadow: 0 1px 0 white;
+    flex: 0 1 auto;
+}
+
+.btn:active {
+    transform: translateY(5px);
+    box-shadow: 0 2px 0 #5e7485, 0 4px 8px rgba(0,0,0,0.1);
+    border-bottom-width: 3px;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    transform: none;
+    pointer-events: none;
+    filter: grayscale(0.3);
+}
+
+/* Animação de urgência (quando status zerado) */
+@keyframes gentlePulse {
+    0% { background: #f8f3e6; border-bottom-color: #8f9eb5; }
+    50% { background: #ffe0b3; border-bottom-color: #c0392b; box-shadow: 0 5px 0 #a04030; }
+    100% { background: #f8f3e6; border-bottom-color: #8f9eb5; }
+}
+
+.btn.urgent {
+    animation: gentlePulse 1.5s infinite;
+}
+
+/* Área de mensagens */
+.message-area {
+    text-align: center;
+    min-height: 40px;
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: #02457a;
+    margin: 5px 0;
+    text-shadow: 0 1px 3px #d9ecfe;
+    transition: color 0.2s;
+}
+
+.message-area.urgent-message {
+    color: #c0392b;
+    font-weight: 700;
+}
+
+/* Responsividade */
+@media (max-width: 420px) {
+    .game-container { padding: 20px 16px; }
+    h1 { font-size: 1.9rem; }
+    .btn { font-size: 1.1rem; padding: 12px 10px; min-width: 100px; }
+}
