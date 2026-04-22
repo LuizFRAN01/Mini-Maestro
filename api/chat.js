@@ -1,7 +1,6 @@
-// api/chat.js (CommonJS com fallback de modelos)
+// api/chat.js (Modelos sem reasoning)
 
 async function handler(req, res) {
-    // Configurar CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -21,8 +20,7 @@ async function handler(req, res) {
 
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) {
-        console.error('ERRO: DEEPSEEK_API_KEY não está definida.');
-        return res.status(500).json({ error: 'Chave da API não configurada no servidor.' });
+        return res.status(500).json({ error: 'Chave da API não configurada.' });
     }
 
     try {
@@ -33,16 +31,16 @@ async function handler(req, res) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                // A nova orquestra, sem modelos do Google!
+                // Modelos que NÃO retornam reasoning (instruction-tuned puros)
                 models: [
-                    'qwen/qwen3.6-plus-preview:free',
                     'meta-llama/llama-3.2-3b-instruct:free',
-                    'nvidia/nemotron-3-super-120b-a12b:free'
+                    'mistralai/mistral-7b-instruct:free',
+                    'nvidia/nemotron-nano-9b-v2:free'
                 ],
                 messages: [
                     {
                         role: 'system',
-                        content: 'Você é o Maestro Pinguim, um pinguim maestro fofo, músico e levemente ranzinza. Você responde com bom humor, pios ocasionais ("piu!", "pruu!") e adora música clássica, peixes e seu cachecol listrado. Mantenha respostas curtas (até 2 frases).'
+                        content: 'Você é o Maestro Pinguim, um pinguim maestro fofo e levemente ranzinza. Responda com bom humor, pios ("piu!") e até 2 frases curtas.'
                     },
                     {
                         role: 'user',
@@ -55,16 +53,15 @@ async function handler(req, res) {
         });
 
         const data = await response.json();
-
         if (!response.ok) {
-            console.error('Erro do OpenRouter:', data);
-            return res.status(500).json({ error: `Erro da API OpenRouter: ${JSON.stringify(data)}` });
+            return res.status(500).json({ error: `Erro OpenRouter: ${JSON.stringify(data)}` });
         }
 
-        const resposta = data.choices[0].message.content;
+        const message = data.choices[0].message;
+        // Prioriza content, ignora reasoning
+        const resposta = message.content || message.reasoning || 'Piu! Me enrolei nas teclas...';
         res.status(200).json({ resposta });
     } catch (error) {
-        console.error('Erro no servidor:', error);
         res.status(500).json({ error: `Erro interno: ${error.message}` });
     }
 }
