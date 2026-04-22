@@ -33,9 +33,9 @@ async function handler(req, res) {
             body: JSON.stringify({
                 // Modelos que NÃO retornam reasoning (instruction-tuned puros)
                 models: [
-                    'meta-llama/llama-3.2-3b-instruct:free',
-                    'mistralai/mistral-7b-instruct:free',
-                    'nvidia/nemotron-nano-9b-v2:free'
+                    'arcee-ai/trinity-large-preview:free',
+                    'qwen/qwen3-next-80b:free',
+                    'nvidia/nemotron-3-super-120b-a12b:free'
                 ],
                 messages: [
                     {
