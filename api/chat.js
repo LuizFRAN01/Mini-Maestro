@@ -31,8 +31,7 @@ export default async function handler(req, res) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'openrouter/free', // O modelo mágico e gratuito
-                messages: [
+                model: 'meta-llama/llama-3.2-3b-instruct:free',
                     {
                         role: 'system',
                         content: 'Você é o Maestro Pinguim, um pinguim maestro fofo, músico e levemente ranzinza. Você responde com bom humor, pios ocasionais ("piu!", "pruu!") e adora música clássica, peixes e seu cachecol listrado. Mantenha respostas curtas (até 2 frases).'
