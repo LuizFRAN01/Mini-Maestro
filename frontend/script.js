@@ -292,7 +292,7 @@
 
         const digitandoDiv = adicionarMensagem('🐧 Piu... (digitando)', 'maestro');
 
-        try {
+                try {
             const response = await fetch(API_CHAT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -300,20 +300,37 @@
             });
             
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Erro HTTP:', response.status, errorText);
                 throw new Error(`Erro HTTP: ${response.status}`);
             }
             
             const data = await response.json();
             digitandoDiv.remove();
             
-            // Verificação robusta da resposta
-            if (data && typeof data.resposta === 'string' && data.resposta.trim() !== '') {
-                adicionarMensagem(data.resposta, 'maestro');
+            // Verificação flexível da resposta
+            let respostaTexto = null;
+            
+            // Tenta extrair a resposta de diferentes formatos possíveis
+            if (data && typeof data.resposta === 'string') {
+                respostaTexto = data.resposta;
+            } else if (data && data.choices && data.choices[0] && data.choices[0].message) {
+                respostaTexto = data.choices[0].message.content;
+            } else if (data && data.error) {
+                // Se a API retornou um erro estruturado
+                console.error('Erro da API:', data.error);
+                respostaTexto = `🐧 Piu... ${data.error.mensagem || 'Me enrolei nas teclas'}`;
+            } else {
+                console.warn('Formato de resposta desconhecido:', data);
+                respostaTexto = '🤔 Recebi uma resposta esquisita... Tente de novo.';
+            }
+            
+            if (respostaTexto && respostaTexto.trim() !== '') {
+                adicionarMensagem(respostaTexto, 'maestro');
                 happiness = Math.min(MAX_STAT, happiness + 3);
                 addXP(2);
                 updateUI();
             } else {
-                console.warn('Resposta inesperada da API:', data);
                 adicionarMensagem('🤔 Hmm, me perdi na partitura... Tente de novo.', 'maestro');
             }
         } catch (error) {
