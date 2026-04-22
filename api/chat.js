@@ -33,7 +33,7 @@ async function handler(req, res) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'meta-llama/llama-3.2-3b-instruct:free',
+                model: 'google/gemma-4-27b-it:free',
                 messages: [
                     {
                         role: 'system',
