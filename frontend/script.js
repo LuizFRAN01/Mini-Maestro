@@ -315,7 +315,16 @@
             if (data && typeof data.resposta === 'string') {
                 respostaTexto = data.resposta;
             } else if (data && data.choices && data.choices[0] && data.choices[0].message) {
-                respostaTexto = data.choices[0].message.content;
+                // Extrai a resposta final, ignorando pensamentos (reasoning)
+                const message = data.choices[0].message;
+                if (message.content && typeof message.content === 'string' && message.content.trim() !== '') {
+                    respostaTexto = message.content;
+                } else if (message.reasoning && typeof message.reasoning === 'string') {
+                    // Se só houver reasoning, usamos ele (mas raramente é o ideal)
+                    respostaTexto = message.reasoning;
+                } else {
+                    respostaTexto = null;
+                }
             } else if (data && data.error) {
                 // Se a API retornou um erro estruturado
                 console.error('Erro da API:', data.error);
