@@ -1,4 +1,4 @@
-// api/chat.js (CommonJS com debug detalhado)
+// api/chat.js (CommonJS com fallback de modelos)
 
 async function handler(req, res) {
     // Configurar CORS
@@ -33,7 +33,13 @@ async function handler(req, res) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'google/gemma-4-27b-it:free',
+                // A MÁGICA ESTÁ AQUI: Agora usamos "models" (plural) como uma lista!
+                models: [
+                    'google/gemma-3-27b-it:free',
+                    'meta-llama/llama-3.3-70b-instruct:free',
+                    'qwen/qwen3-4b:free',
+                    'nvidia/nemotron-nano-9b-v2:free'
+                ],
                 messages: [
                     {
                         role: 'system',
@@ -52,23 +58,15 @@ async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok) {
-            // Retorna o erro completo da OpenRouter para debug
             console.error('Erro do OpenRouter:', data);
-            return res.status(500).json({ 
-                error: 'Erro da API OpenRouter', 
-                detalhes: data 
-            });
+            return res.status(500).json({ error: `Erro da API OpenRouter: ${JSON.stringify(data)}` });
         }
 
         const resposta = data.choices[0].message.content;
         res.status(200).json({ resposta });
     } catch (error) {
         console.error('Erro no servidor:', error);
-        res.status(500).json({ 
-            error: 'Erro interno no servidor', 
-            mensagem: error.message,
-            stack: error.stack 
-        });
+        res.status(500).json({ error: `Erro interno: ${error.message}` });
     }
 }
 
