@@ -281,7 +281,7 @@
         updateUI();
     }
 
-    // ---------- CHAT COM IA (CORRIGIDO) ----------
+    // ---------- CHAT COM IA (COM FILTRO ANTI-PENSAMENTO) ----------
     async function enviarMensagem() {
         const mensagem = chatInput.value.trim();
         if (!mensagem) return;
@@ -292,7 +292,7 @@
 
         const digitandoDiv = adicionarMensagem('🐧 Piu... (digitando)', 'maestro');
 
-                try {
+        try {
             const response = await fetch(API_CHAT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -315,33 +315,36 @@
             if (data && typeof data.resposta === 'string') {
                 respostaTexto = data.resposta;
             } else if (data && data.choices && data.choices[0] && data.choices[0].message) {
-                // Extrai a resposta final, ignorando pensamentos (reasoning)
                 const message = data.choices[0].message;
-                if (message.content && typeof message.content === 'string' && message.content.trim() !== '') {
-                    respostaTexto = message.content;
-                } else if (message.reasoning && typeof message.reasoning === 'string') {
-                    // Se só houver reasoning, usamos ele (mas raramente é o ideal)
-                    respostaTexto = message.reasoning;
-                } else {
-                    respostaTexto = null;
+                // Prioriza o conteúdo real, ignorando reasoning
+                let rawText = message.content || message.reasoning || '';
+                
+                // Filtra pensamentos (padrões comuns de "reasoning")
+                if (rawText && typeof rawText === 'string') {
+                    // Se começa com palavras típicas de pensamento, descarta
+                    const reasoningPattern = /^(Okay|The user|I need to|First,|I should|Let me|The assistant|Assistant|User:|Assistant:)/i;
+                    if (!reasoningPattern.test(rawText.trim())) {
+                        respostaTexto = rawText;
+                    } else if (message.reasoning) {
+                        // Se content era pensamento, tenta usar reasoning como resposta (raro)
+                        respostaTexto = message.reasoning;
+                    }
                 }
             } else if (data && data.error) {
-                // Se a API retornou um erro estruturado
                 console.error('Erro da API:', data.error);
                 respostaTexto = `🐧 Piu... ${data.error.mensagem || 'Me enrolei nas teclas'}`;
-            } else {
-                console.warn('Formato de resposta desconhecido:', data);
-                respostaTexto = '🤔 Recebi uma resposta esquisita... Tente de novo.';
             }
             
-            if (respostaTexto && respostaTexto.trim() !== '') {
-                adicionarMensagem(respostaTexto, 'maestro');
-                happiness = Math.min(MAX_STAT, happiness + 3);
-                addXP(2);
-                updateUI();
-            } else {
-                adicionarMensagem('🤔 Hmm, me perdi na partitura... Tente de novo.', 'maestro');
+            // Fallback final
+            if (!respostaTexto || respostaTexto.trim() === '') {
+                console.warn('Formato de resposta desconhecido ou vazio:', data);
+                respostaTexto = '🤔 Hmm, me perdi na partitura... Tente de novo.';
             }
+            
+            adicionarMensagem(respostaTexto, 'maestro');
+            happiness = Math.min(MAX_STAT, happiness + 3);
+            addXP(2);
+            updateUI();
         } catch (error) {
             digitandoDiv.remove();
             console.error('Erro no chat:', error);
