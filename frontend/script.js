@@ -4,10 +4,12 @@
     // ---------- CONFIGURAÇÕES ----------
     const MAX_STAT = 100;
     const MIN_STAT = 0;
-    const DECAY_INTERVAL_MS = 300000; // 5 minutos
-    const DECAY_AMOUNT = 8;
-    
-    // 🔗 LINK DA API DO CHAT (substitua pelo seu link da Vercel)
+    const DECAY_PER_8_HOURS = 100;     // 100 pontos a cada 8 horas
+    const MS_PER_HOUR = 3600000;        // Milissegundos em 1 hora
+    const DECAY_INTERVAL_MS = 300000;   // 5 minutos (para quando a página está aberta)
+    const DECAY_AMOUNT = (DECAY_PER_8_HOURS / 8) * (5 / 60); // ≈ 1.04 pontos a cada 5 min
+
+    // 🔗 LINK DA API DO CHAT (caminho relativo)
     const API_CHAT_URL = '/api/chat';
 
     // Estado
@@ -17,6 +19,9 @@
     let maestroXP = 0;
     let maestroLevel = 1;
     const XP_PER_LEVEL = 100;
+
+    // Timestamp da última atualização (para decaimento offline)
+    let lastUpdateTimestamp = Date.now();
 
     // Elementos DOM
     const pinguimDiv = document.getElementById('pinguimSprite');
@@ -35,17 +40,19 @@
     const playBtn = document.getElementById('playBtn');
     const sleepBtn = document.getElementById('sleepBtn');
 
-    // Elementos do chat
     const chatInput = document.getElementById('chatInput');
     const sendChatBtn = document.getElementById('sendChatBtn');
     const chatMessages = document.getElementById('chatMessages');
 
     let decayInterval = null;
-    let actionTimer = null; // Para ações temporárias (comendo/tocando/dormindo)
+    let actionTimer = null;
 
-    // ---------- SALVAMENTO LOCAL ----------
+    // ---------- SALVAMENTO LOCAL (COM TIMESTAMP) ----------
     function saveGame() {
-        const state = { hunger, happiness, energy, maestroXP, maestroLevel };
+        const state = {
+            hunger, happiness, energy, maestroXP, maestroLevel,
+            lastUpdate: Date.now()  // Salva o momento exato da última alteração
+        };
         localStorage.setItem('pinguimMaestroSave', JSON.stringify(state));
     }
 
@@ -59,13 +66,53 @@
                 energy = s.energy ?? 70;
                 maestroXP = s.maestroXP ?? 0;
                 maestroLevel = s.maestroLevel ?? 1;
+                lastUpdateTimestamp = s.lastUpdate || Date.now();
+                
+                // Aplica o decaimento offline baseado no tempo passado
+                applyOfflineDecay();
                 return true;
-            } catch(e) {}
+            } catch(e) {
+                console.warn('Erro ao carregar save:', e);
+            }
         }
         return false;
     }
 
-    // ---------- ATUALIZA EXPRESSÃO DO PINGUIM (SPRITE) ----------
+    // ---------- DECAIMENTO OFFLINE (BASEADO EM TEMPO REAL) ----------
+    function applyOfflineDecay() {
+        const now = Date.now();
+        const elapsedMs = now - lastUpdateTimestamp;
+        const elapsedHours = elapsedMs / MS_PER_HOUR;
+        
+        // Calcula quanto cada status deve cair (proporcional a 100 pontos / 8 horas)
+        const decayPoints = (elapsedHours / 8) * DECAY_PER_8_HOURS;
+        
+        // Aplica o decaimento (sem nunca deixar negativo)
+        hunger = Math.max(MIN_STAT, hunger - decayPoints);
+        happiness = Math.max(MIN_STAT, happiness - decayPoints);
+        energy = Math.max(MIN_STAT, energy - decayPoints);
+        
+        // Se algum status zerou, mostra mensagem de urgência
+        if (hunger <= 0 || happiness <= 0 || energy <= 0) {
+            messageEl.textContent = '😢 O maestro sentiu sua falta... Precisa de cuidados!';
+            messageEl.classList.add('urgent-message');
+        }
+        
+        // Atualiza o timestamp para agora
+        lastUpdateTimestamp = now;
+    }
+
+    // ---------- DECAIMENTO ONLINE (ENQUANTO A PÁGINA ESTÁ ABERTA) ----------
+    function decayStats() {
+        hunger = Math.max(MIN_STAT, hunger - DECAY_AMOUNT);
+        happiness = Math.max(MIN_STAT, happiness - DECAY_AMOUNT);
+        energy = Math.max(MIN_STAT, energy - DECAY_AMOUNT);
+        lastUpdateTimestamp = Date.now();
+        clampStats();
+        updateUI();
+    }
+
+    // ---------- ATUALIZA EXPRESSÃO DO PINGUIM ----------
     function updateSprite(forcedClass = null) {
         pinguimDiv.classList.remove('neutro', 'feliz', 'triste', 'fome', 'cansado', 'teclado', 'dormindo', 'comendo');
         
@@ -163,7 +210,6 @@
         energy = Math.min(MAX_STAT, Math.max(MIN_STAT, energy));
     }
 
-    // ---------- AÇÕES TEMPORÁRIAS DE SPRITE ----------
     function setTemporarySprite(className, duration = 2000) {
         if (actionTimer) clearTimeout(actionTimer);
         updateSprite(className);
@@ -235,8 +281,8 @@
         updateUI();
     }
 
-    // ---------- FUNCIONALIDADE DO CHAT COM IA ----------
-        async function enviarMensagem() {
+    // ---------- CHAT COM IA (CORRIGIDO) ----------
+    async function enviarMensagem() {
         const mensagem = chatInput.value.trim();
         if (!mensagem) return;
 
@@ -252,24 +298,27 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mensagem })
             });
-            const data = await response.json();
             
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+            
+            const data = await response.json();
             digitandoDiv.remove();
             
-            // === CORREÇÃO AQUI: verificamos se data.resposta EXISTE ===
-            if (data && data.resposta) {
+            // Verificação robusta da resposta
+            if (data && typeof data.resposta === 'string' && data.resposta.trim() !== '') {
                 adicionarMensagem(data.resposta, 'maestro');
                 happiness = Math.min(MAX_STAT, happiness + 3);
                 addXP(2);
                 updateUI();
             } else {
-                // Se a resposta for estranha, mostra o erro real
-                console.error('Resposta inesperada:', data);
-                adicionarMensagem('🤔 Acho que me enrolei nas teclas... Tente de novo.', 'maestro');
+                console.warn('Resposta inesperada da API:', data);
+                adicionarMensagem('🤔 Hmm, me perdi na partitura... Tente de novo.', 'maestro');
             }
         } catch (error) {
             digitandoDiv.remove();
-            console.error('Erro de rede:', error);
+            console.error('Erro no chat:', error);
             adicionarMensagem('❌ O maestro saiu para pescar... (erro de conexão)', 'maestro');
         } finally {
             sendChatBtn.disabled = false;
@@ -284,15 +333,6 @@
         chatMessages.appendChild(msgDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
         return msgDiv;
-    }
-
-    // ---------- DECAIMENTO LENTO ----------
-    function decayStats() {
-        hunger = Math.max(MIN_STAT, hunger - DECAY_AMOUNT);
-        happiness = Math.max(MIN_STAT, happiness - DECAY_AMOUNT);
-        energy = Math.max(MIN_STAT, energy - DECAY_AMOUNT);
-        clampStats();
-        updateUI();
     }
 
     // ---------- INICIALIZAÇÃO ----------
