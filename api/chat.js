@@ -1,4 +1,4 @@
-// api/chat.js (CommonJS com fallback de 3 modelos)
+// api/chat.js (CommonJS com fallback de modelos)
 
 async function handler(req, res) {
     // Configurar CORS
@@ -33,11 +33,11 @@ async function handler(req, res) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                // Lista reduzida para 3 modelos (limite do OpenRouter)
+                // A nova orquestra, sem modelos do Google!
                 models: [
-                    'google/gemma-3-27b-it:free',
+                    'qwen/qwen3.6-plus-preview:free',
                     'meta-llama/llama-3.2-3b-instruct:free',
-                    'qwen/qwen3-4b:free'
+                    'nvidia/nemotron-3-super-120b-a12b:free'
                 ],
                 messages: [
                     {
