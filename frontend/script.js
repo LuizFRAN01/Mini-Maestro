@@ -291,8 +291,8 @@
 
         const utterance = new SpeechSynthesisUtterance(texto);
         utterance.lang = 'pt-BR';
-        utterance.rate = 1.1;   // velocidade levemente acelerada
-        utterance.pitch = 1.3;  // tom mais agudo (voz de pinguim fofo)
+        utterance.rate = 0.85;   // velocidade levemente acelerada
+        utterance.pitch = 3;  // tom mais agudo (voz de pinguim fofo)
         utterance.volume = 1;
 
         // Tenta selecionar uma voz feminina em português (mais fofa)
