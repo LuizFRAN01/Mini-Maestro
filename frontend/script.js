@@ -4,12 +4,11 @@
     // ---------- CONFIGURAÇÕES ----------
     const MAX_STAT = 100;
     const MIN_STAT = 0;
-    const DECAY_PER_8_HOURS = 100;     // 100 pontos a cada 8 horas
-    const MS_PER_HOUR = 3600000;        // Milissegundos em 1 hora
-    const DECAY_INTERVAL_MS = 300000;   // 5 minutos (para quando a página está aberta)
-    const DECAY_AMOUNT = (DECAY_PER_8_HOURS / 8) * (5 / 60); // ≈ 1.04 pontos a cada 5 min
+    const DECAY_PER_8_HOURS = 100;
+    const MS_PER_HOUR = 3600000;
+    const DECAY_INTERVAL_MS = 300000;
+    const DECAY_AMOUNT = (DECAY_PER_8_HOURS / 8) * (5 / 60);
 
-    // 🔗 LINK DA API DO CHAT (caminho relativo)
     const API_CHAT_URL = '/api/chat';
 
     // Estado
@@ -19,9 +18,11 @@
     let maestroXP = 0;
     let maestroLevel = 1;
     const XP_PER_LEVEL = 100;
-
-    // Timestamp da última atualização (para decaimento offline)
     let lastUpdateTimestamp = Date.now();
+
+    // 🎤 Controle de voz
+    let voiceEnabled = true;
+    let isSpeaking = false;
 
     // Elementos DOM
     const pinguimDiv = document.getElementById('pinguimSprite');
@@ -44,14 +45,18 @@
     const sendChatBtn = document.getElementById('sendChatBtn');
     const chatMessages = document.getElementById('chatMessages');
 
+    // 🎤 Botão de voz
+    const toggleVoiceBtn = document.getElementById('toggleVoiceBtn');
+
     let decayInterval = null;
     let actionTimer = null;
 
-    // ---------- SALVAMENTO LOCAL (COM TIMESTAMP) ----------
+    // ---------- SALVAMENTO LOCAL ----------
     function saveGame() {
         const state = {
             hunger, happiness, energy, maestroXP, maestroLevel,
-            lastUpdate: Date.now()  // Salva o momento exato da última alteração
+            lastUpdate: Date.now(),
+            voiceEnabled
         };
         localStorage.setItem('pinguimMaestroSave', JSON.stringify(state));
     }
@@ -67,8 +72,8 @@
                 maestroXP = s.maestroXP ?? 0;
                 maestroLevel = s.maestroLevel ?? 1;
                 lastUpdateTimestamp = s.lastUpdate || Date.now();
-                
-                // Aplica o decaimento offline baseado no tempo passado
+                voiceEnabled = s.voiceEnabled ?? true;
+                updateVoiceButton();
                 applyOfflineDecay();
                 return true;
             } catch(e) {
@@ -78,31 +83,26 @@
         return false;
     }
 
-    // ---------- DECAIMENTO OFFLINE (BASEADO EM TEMPO REAL) ----------
+    // ---------- DECAIMENTO OFFLINE ----------
     function applyOfflineDecay() {
         const now = Date.now();
         const elapsedMs = now - lastUpdateTimestamp;
         const elapsedHours = elapsedMs / MS_PER_HOUR;
-        
-        // Calcula quanto cada status deve cair (proporcional a 100 pontos / 8 horas)
         const decayPoints = (elapsedHours / 8) * DECAY_PER_8_HOURS;
         
-        // Aplica o decaimento (sem nunca deixar negativo)
         hunger = Math.max(MIN_STAT, hunger - decayPoints);
         happiness = Math.max(MIN_STAT, happiness - decayPoints);
         energy = Math.max(MIN_STAT, energy - decayPoints);
         
-        // Se algum status zerou, mostra mensagem de urgência
         if (hunger <= 0 || happiness <= 0 || energy <= 0) {
             messageEl.textContent = '😢 O maestro sentiu sua falta... Precisa de cuidados!';
             messageEl.classList.add('urgent-message');
         }
         
-        // Atualiza o timestamp para agora
         lastUpdateTimestamp = now;
     }
 
-    // ---------- DECAIMENTO ONLINE (ENQUANTO A PÁGINA ESTÁ ABERTA) ----------
+    // ---------- DECAIMENTO ONLINE ----------
     function decayStats() {
         hunger = Math.max(MIN_STAT, hunger - DECAY_AMOUNT);
         happiness = Math.max(MIN_STAT, happiness - DECAY_AMOUNT);
@@ -112,7 +112,7 @@
         updateUI();
     }
 
-    // ---------- ATUALIZA EXPRESSÃO DO PINGUIM ----------
+    // ---------- SPRITE ----------
     function updateSprite(forcedClass = null) {
         pinguimDiv.classList.remove('neutro', 'feliz', 'triste', 'fome', 'cansado', 'teclado', 'dormindo', 'comendo');
         
@@ -121,26 +121,17 @@
             return;
         }
 
-        if (hunger <= MIN_STAT) {
-            pinguimDiv.classList.add('fome');
-        } else if (happiness <= MIN_STAT) {
-            pinguimDiv.classList.add('triste');
-        } else if (energy <= MIN_STAT) {
-            pinguimDiv.classList.add('cansado');
-        } else if (hunger < 30) {
-            pinguimDiv.classList.add('fome');
-        } else if (happiness < 30) {
-            pinguimDiv.classList.add('triste');
-        } else if (energy < 30) {
-            pinguimDiv.classList.add('cansado');
-        } else if (happiness > 70) {
-            pinguimDiv.classList.add('feliz');
-        } else {
-            pinguimDiv.classList.add('neutro');
-        }
+        if (hunger <= MIN_STAT) pinguimDiv.classList.add('fome');
+        else if (happiness <= MIN_STAT) pinguimDiv.classList.add('triste');
+        else if (energy <= MIN_STAT) pinguimDiv.classList.add('cansado');
+        else if (hunger < 30) pinguimDiv.classList.add('fome');
+        else if (happiness < 30) pinguimDiv.classList.add('triste');
+        else if (energy < 30) pinguimDiv.classList.add('cansado');
+        else if (happiness > 70) pinguimDiv.classList.add('feliz');
+        else pinguimDiv.classList.add('neutro');
     }
 
-    // ---------- ATUALIZA TODA A UI ----------
+    // ---------- ATUALIZA UI ----------
     function updateUI() {
         hungerBar.style.width = (hunger / MAX_STAT * 100) + '%';
         happinessBar.style.width = (happiness / MAX_STAT * 100) + '%';
@@ -186,14 +177,11 @@
             else messageEl.textContent = '🎼 Pronto para reger uma sinfonia!';
         }
 
-        if (!actionTimer) {
-            updateSprite();
-        }
-
+        if (!actionTimer) updateSprite();
         saveGame();
     }
 
-    // ---------- SISTEMA DE XP ----------
+    // ---------- XP ----------
     function addXP(amount) {
         maestroXP += amount;
         const newLevel = Math.floor(maestroXP / XP_PER_LEVEL) + 1;
@@ -219,10 +207,11 @@
         }, duration);
     }
 
-    // ---------- AÇÕES DO JOGADOR ----------
+    // ---------- AÇÕES ----------
     function feed() {
         if (hunger >= MAX_STAT) {
             messageEl.textContent = '🐟 Já estou cheio, mas obrigado!';
+            falar('Já estou cheio, mas obrigado!');
             return;
         }
         hunger = Math.min(MAX_STAT, hunger + 25);
@@ -231,16 +220,19 @@
         addXP(10);
         messageEl.textContent = '🐟 Peixinho delicioso! Obrigado!';
         setTemporarySprite('comendo', 2000);
+        falar('Peixinho delicioso! Obrigado!');
         updateUI();
     }
 
     function playMusic() {
         if (happiness >= MAX_STAT) {
             messageEl.textContent = '🎵 Estou tão feliz que nem preciso tocar agora!';
+            falar('Estou tão feliz que nem preciso tocar agora!');
             return;
         }
         if (energy < 8) {
             messageEl.textContent = '😫 Muito cansado para tocar...';
+            falar('Muito cansado para tocar...');
             return;
         }
 
@@ -263,12 +255,14 @@
         addXP(15);
         messageEl.textContent = '🎹 Que melodia linda! Me sinto inspirado!';
         setTemporarySprite('teclado', 2500);
+        falar('Que melodia linda! Me sinto inspirado!');
         updateUI();
     }
 
     function sleep() {
         if (energy >= MAX_STAT) {
             messageEl.textContent = '💤 Estou descansado, não preciso dormir agora.';
+            falar('Estou descansado, não preciso dormir agora.');
             return;
         }
         energy = Math.min(MAX_STAT, energy + 35);
@@ -278,10 +272,101 @@
         addXP(8);
         messageEl.textContent = '🛋️ Que cochilo gostoso na poltrona... Zzz';
         setTemporarySprite('dormindo', 3000);
+        falar('Que cochilo gostoso... Zzz...');
         updateUI();
     }
 
-    // ---------- CHAT COM IA (COM FILTRO ANTI-PENSAMENTO) ----------
+    // ---------- 🎤 FUNÇÃO DE VOZ (WEB SPEECH API) ----------
+    function falar(texto) {
+        if (!voiceEnabled || isSpeaking || !texto || texto.trim() === '') return;
+        
+        // Verifica suporte
+        if (!('speechSynthesis' in window)) {
+            console.warn('Web Speech API não suportada neste navegador.');
+            return;
+        }
+
+        // Cancela qualquer fala anterior
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(texto);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 1.1;   // velocidade levemente acelerada
+        utterance.pitch = 1.3;  // tom mais agudo (voz de pinguim fofo)
+        utterance.volume = 1;
+
+        // Tenta selecionar uma voz feminina em português (mais fofa)
+        const voices = window.speechSynthesis.getVoices();
+        const ptVoice = voices.find(v => v.lang.startsWith('pt-BR') && v.name.includes('Female')) ||
+                         voices.find(v => v.lang.startsWith('pt-BR')) ||
+                         voices.find(v => v.lang.startsWith('pt'));
+        if (ptVoice) utterance.voice = ptVoice;
+
+        // Eventos de fala
+        utterance.onstart = () => {
+            isSpeaking = true;
+            updateVoiceButton();
+        };
+
+        utterance.onend = () => {
+            isSpeaking = false;
+            updateVoiceButton();
+        };
+
+        utterance.onerror = (e) => {
+            console.warn('Erro na síntese de voz:', e);
+            isSpeaking = false;
+            updateVoiceButton();
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // 🎤 Atualiza o botão de voz
+    function updateVoiceButton() {
+        if (!toggleVoiceBtn) return;
+        
+        if (voiceEnabled) {
+            toggleVoiceBtn.textContent = isSpeaking ? '🔊🔊 Falando...' : '🔊 Voz: Ligada';
+            toggleVoiceBtn.classList.remove('muted');
+        } else {
+            toggleVoiceBtn.textContent = '🔇 Voz: Desligada';
+            toggleVoiceBtn.classList.add('muted');
+        }
+
+        // Indicador de fala
+        let indicator = toggleVoiceBtn.querySelector('.speaking-indicator');
+        if (isSpeaking) {
+            if (!indicator) {
+                indicator = document.createElement('span');
+                indicator.className = 'speaking-indicator';
+                toggleVoiceBtn.appendChild(indicator);
+            }
+        } else {
+            if (indicator) indicator.remove();
+        }
+    }
+
+    // 🎤 Alterna voz ligada/desligada
+    function toggleVoice() {
+        voiceEnabled = !voiceEnabled;
+        
+        if (!voiceEnabled && isSpeaking) {
+            window.speechSynthesis.cancel();
+            isSpeaking = false;
+        }
+        
+        updateVoiceButton();
+        saveGame();
+        
+        // Feedback tátil/visual da mudança
+        if (voiceEnabled) {
+            toggleVoiceBtn.style.transform = 'scale(1.05)';
+            setTimeout(() => toggleVoiceBtn.style.transform = 'scale(1)', 150);
+        }
+    }
+
+    // ---------- CHAT COM IA ----------
     async function enviarMensagem() {
         const mensagem = chatInput.value.trim();
         if (!mensagem) return;
@@ -308,25 +393,19 @@
             const data = await response.json();
             digitandoDiv.remove();
             
-            // Verificação flexível da resposta
             let respostaTexto = null;
             
-            // Tenta extrair a resposta de diferentes formatos possíveis
             if (data && typeof data.resposta === 'string') {
                 respostaTexto = data.resposta;
             } else if (data && data.choices && data.choices[0] && data.choices[0].message) {
                 const message = data.choices[0].message;
-                // Prioriza o conteúdo real, ignorando reasoning
                 let rawText = message.content || message.reasoning || '';
                 
-                // Filtra pensamentos (padrões comuns de "reasoning")
                 if (rawText && typeof rawText === 'string') {
-                    // Se começa com palavras típicas de pensamento, descarta
                     const reasoningPattern = /^(Okay|The user|I need to|First,|I should|Let me|The assistant|Assistant|User:|Assistant:)/i;
                     if (!reasoningPattern.test(rawText.trim())) {
                         respostaTexto = rawText;
                     } else if (message.reasoning) {
-                        // Se content era pensamento, tenta usar reasoning como resposta (raro)
                         respostaTexto = message.reasoning;
                     }
                 }
@@ -335,13 +414,16 @@
                 respostaTexto = `🐧 Piu... ${data.error.mensagem || 'Me enrolei nas teclas'}`;
             }
             
-            // Fallback final
             if (!respostaTexto || respostaTexto.trim() === '') {
                 console.warn('Formato de resposta desconhecido ou vazio:', data);
                 respostaTexto = '🤔 Hmm, me perdi na partitura... Tente de novo.';
             }
             
             adicionarMensagem(respostaTexto, 'maestro');
+            
+            // 🎤 FALAR A RESPOSTA
+            falar(respostaTexto);
+            
             happiness = Math.min(MAX_STAT, happiness + 3);
             addXP(2);
             updateUI();
@@ -349,6 +431,7 @@
             digitandoDiv.remove();
             console.error('Erro no chat:', error);
             adicionarMensagem('❌ O maestro saiu para pescar... (erro de conexão)', 'maestro');
+            falar('Opa, saí para pescar... Tente de novo!');
         } finally {
             sendChatBtn.disabled = false;
             chatInput.focus();
@@ -370,9 +453,21 @@
         clampStats();
         updateUI();
 
+        // Pré-carrega vozes
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.getVoices();
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
+        }
+
         feedBtn.addEventListener('click', feed);
         playBtn.addEventListener('click', playMusic);
         sleepBtn.addEventListener('click', sleep);
+
+        if (toggleVoiceBtn) {
+            toggleVoiceBtn.addEventListener('click', toggleVoice);
+        }
 
         if (sendChatBtn) {
             sendChatBtn.addEventListener('click', enviarMensagem);
@@ -384,7 +479,8 @@
         if (decayInterval) clearInterval(decayInterval);
         decayInterval = setInterval(decayStats, DECAY_INTERVAL_MS);
 
-        console.log('🐧 Pinguim Maestro carregado com sucesso!');
+        updateVoiceButton();
+        console.log('🐧 Pinguim Maestro carregado com sucesso! 🎤');
     }
 
     init();
