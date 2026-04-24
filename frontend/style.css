@@ -355,3 +355,49 @@ h1 {
     transform: translateY(3px);
     box-shadow: 0 1px 0 #5e7485;
 }
+
+/* ---------- CONTROLE DE VOZ ---------- */
+.voice-control {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+
+.btn-voice {
+    background: #e8f4f8;
+    border: 2px solid #aac7e0;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #02457a;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-voice:hover {
+    background: #d0e8f0;
+}
+
+.btn-voice.muted {
+    background: #fce4e4;
+    border-color: #e0a0a0;
+    color: #8b0000;
+}
+
+/* Indicador de fala (aparece enquanto o pinguim está falando) */
+.speaking-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #4caf50;
+    border-radius: 50%;
+    margin-left: 8px;
+    animation: pulse-speaking 0.6s infinite alternate;
+}
+
+@keyframes pulse-speaking {
+    from { transform: scale(0.8); opacity: 0.6; }
+    to { transform: scale(1.2); opacity: 1; }
+}
