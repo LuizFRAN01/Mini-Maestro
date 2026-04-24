@@ -327,7 +327,7 @@
         if (!toggleVoiceBtn) return;
         
         if (voiceEnabled) {
-            toggleVoiceBtn.textContent = isSpeaking ? '🔊🔊 Falando...' : '🔊 Voz: Ligada';
+            toggleVoiceBtn.textContent = isSpeaking ? '🔊 Falando...' : '🔊 Voz: Ligada';
             toggleVoiceBtn.classList.remove('muted');
         } else {
             toggleVoiceBtn.textContent = '🔇 Voz: Desligada';
